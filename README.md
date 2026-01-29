@@ -1,6 +1,6 @@
-# 🌌 Antigravity Awesome Skills: 552+ Agentic Skills for Claude Code, Gemini CLI, Cursor, Copilot & More
+# 🌌 Antigravity Awesome Skills: 560+ Agentic Skills for Claude Code, Gemini CLI, Cursor, Copilot & More
 
-> **The Ultimate Collection of 552+ Universal Agentic Skills for AI Coding Assistants — Claude Code, Gemini CLI, Codex CLI, Antigravity IDE, GitHub Copilot, Cursor, OpenCode**
+> **The Ultimate Collection of 560+ Universal Agentic Skills for AI Coding Assistants — Claude Code, Gemini CLI, Codex CLI, Antigravity IDE, GitHub Copilot, Cursor, OpenCode**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Anthropic-purple)](https://claude.ai)
@@ -11,7 +11,7 @@
 [![OpenCode](https://img.shields.io/badge/OpenCode-CLI-gray)](https://github.com/opencode-ai/opencode)
 [![Antigravity](https://img.shields.io/badge/Antigravity-DeepMind-red)](https://github.com/sickn33/antigravity-awesome-skills)
 
-**Antigravity Awesome Skills** is a curated, battle-tested library of **552 high-performance agentic skills** designed to work seamlessly across all major AI coding assistants:
+**Antigravity Awesome Skills** is a curated, battle-tested library of **560 high-performance agentic skills** designed to work seamlessly across all major AI coding assistants:
 
 - 🟣 **Claude Code** (Anthropic CLI)
 - 🔵 **Gemini CLI** (Google DeepMind)
@@ -29,7 +29,7 @@ This repository provides essential skills to transform your AI assistant into a 
 - [🔌 Compatibility & Invocation](#compatibility--invocation)
 - [📦 Features & Categories](#features--categories)
 - [🎁 Curated Collections (Bundles)](#curated-collections)
-- [📚 Browse 552+ Skills](#browse-552-skills)
+- [📚 Browse 560+ Skills](#browse-560-skills)
 - [🛠️ Installation](#installation)
 - [🤝 How to Contribute](#how-to-contribute)
 - [👥 Contributors & Credits](#credits--sources)
@@ -52,7 +52,7 @@ AI Agents (like Claude Code, Cursor, or Gemini) are smart, but they lack **speci
 
 ### 2. ⚡️ Quick Start (The "Bundle" Way)
 
-Don't install 552+ skills manually. Use our **Starter Packs**:
+Don't install 560+ skills manually. Use our **Starter Packs**:
 
 1.  **Clone the repo**:
     ```bash
@@ -120,7 +120,7 @@ The repository is organized into specialized domains to transform your AI into a
 
 [Check out our Starter Packs in docs/BUNDLES.md](docs/BUNDLES.md) to find the perfect toolkit for your role.
 
-## Browse 552+ Skills
+## Browse 560+ Skills
 
 We have moved the full skill registry to a dedicated catalog to keep this README clean.
 
@@ -263,7 +263,6 @@ We officially thank the following contributors for their help in making this rep
 - [raeef1001](https://github.com/raeef1001)
 - [taksrules](https://github.com/taksrules)
 - [zebbern](https://github.com/zebbern)
-- [Đỗ Khắc Gia Khoa](https://github.com/dokhacgiakhoa)
 - [vuth-dogo](https://github.com/vuth-dogo)
 
 ## Star History

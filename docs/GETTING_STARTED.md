@@ -15,7 +15,7 @@ AI Agents (like **Claude Code**, **Gemini**, **Cursor**) are smart, but they lac
 
 ## ⚡️ Quick Start: The "Starter Packs"
 
-Don't panic about the 552+ skills. You don't need them all at once.
+Don't panic about the 560+ skills. You don't need them all at once.
 We have curated **Starter Packs** to get you running immediately.
 
 ### 1. Install the Repo
@@ -90,7 +90,7 @@ _Check the [Skill Catalog](../CATALOG.md) for the full list._
 
 ## ❓ FAQ
 
-**Q: Do I need to install all 552 skills?**
+**Q: Do I need to install all 560 skills?**
 A: You clone the whole repo, but your AI only _reads_ the ones you ask for (or that are relevant). It's lightweight!
 
 **Q: Can I make my own skills?**

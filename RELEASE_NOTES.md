@@ -1,4 +1,4 @@
-# Release v3.4.0: Internationalization & Game Development
+# Release v4.1.0: Internationalization & Game Development
 
 > **Vietnamese translations and Unreal Engine C++ expertise added to the skills collection**
 
