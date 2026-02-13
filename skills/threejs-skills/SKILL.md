@@ -1,6 +1,8 @@
 ---
 name: threejs-skills
 description: Create 3D scenes, interactive experiences, and visual effects using Three.js. Use when user requests 3D graphics, WebGL experiences, 3D visualizations, animations, or interactive 3D elements.
+source: https://github.com/CloudAI-X/threejs-skills
+risk: safe
 ---
 
 # Three.js Skills
@@ -23,7 +25,7 @@ Systematically create high-quality 3D scenes and interactive experiences using T
 Always use the correct CDN version (r128):
 
 ```javascript
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+import * as THREE from "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
 ```
 
 **CRITICAL**: Do NOT use example imports like `THREE.OrbitControls` - they won't work on the CDN.
@@ -38,10 +40,10 @@ const scene = new THREE.Scene();
 
 // Camera - defines viewing perspective
 const camera = new THREE.PerspectiveCamera(
-  75,                                    // Field of view
+  75, // Field of view
   window.innerWidth / window.innerHeight, // Aspect ratio
-  0.1,                                   // Near clipping plane
-  1000                                   // Far clipping plane
+  0.1, // Near clipping plane
+  1000, // Far clipping plane
 );
 camera.position.z = 5;
 
@@ -58,11 +60,11 @@ Use requestAnimationFrame for smooth rendering:
 ```javascript
 function animate() {
   requestAnimationFrame(animate);
-  
+
   // Update object transformations here
   mesh.rotation.x += 0.01;
   mesh.rotation.y += 0.01;
-  
+
   renderer.render(scene, camera);
 }
 animate();
@@ -84,6 +86,7 @@ Start by identifying:
 Choose appropriate geometry types:
 
 **Basic Shapes:**
+
 - `BoxGeometry` - cubes, rectangular prisms
 - `SphereGeometry` - spheres, planets
 - `CylinderGeometry` - cylinders, tubes
@@ -93,6 +96,7 @@ Choose appropriate geometry types:
 **IMPORTANT**: Do NOT use `CapsuleGeometry` (introduced in r142, not available in r128)
 
 **Alternatives for capsules:**
+
 - Combine `CylinderGeometry` + 2 `SphereGeometry`
 - Use `SphereGeometry` with adjusted parameters
 - Create custom geometry with vertices
@@ -102,6 +106,7 @@ Choose appropriate geometry types:
 Choose materials based on visual needs:
 
 **Common Materials:**
+
 - `MeshBasicMaterial` - unlit, flat colors (no lighting needed)
 - `MeshStandardMaterial` - physically-based, realistic (needs lighting)
 - `MeshPhongMaterial` - shiny surfaces with specular highlights
@@ -111,7 +116,7 @@ Choose materials based on visual needs:
 const material = new THREE.MeshStandardMaterial({
   color: 0x00ff00,
   metalness: 0.5,
-  roughness: 0.5
+  roughness: 0.5,
 });
 ```
 
@@ -137,7 +142,7 @@ scene.add(directionalLight);
 Always add window resize handling:
 
 ```javascript
-window.addEventListener('resize', () => {
+window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -165,31 +170,31 @@ Since `THREE.OrbitControls` isn't available on CDN, implement custom controls:
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
 
-renderer.domElement.addEventListener('mousedown', () => {
+renderer.domElement.addEventListener("mousedown", () => {
   isDragging = true;
 });
 
-renderer.domElement.addEventListener('mouseup', () => {
+renderer.domElement.addEventListener("mouseup", () => {
   isDragging = false;
 });
 
-renderer.domElement.addEventListener('mousemove', (event) => {
+renderer.domElement.addEventListener("mousemove", (event) => {
   if (isDragging) {
     const deltaX = event.clientX - previousMousePosition.x;
     const deltaY = event.clientY - previousMousePosition.y;
-    
+
     // Rotate camera around scene
     const rotationSpeed = 0.005;
     camera.position.x += deltaX * rotationSpeed;
     camera.position.y -= deltaY * rotationSpeed;
     camera.lookAt(scene.position);
   }
-  
+
   previousMousePosition = { x: event.clientX, y: event.clientY };
 });
 
 // Zoom with mouse wheel
-renderer.domElement.addEventListener('wheel', (event) => {
+renderer.domElement.addEventListener("wheel", (event) => {
   event.preventDefault();
   camera.position.z += event.deltaY * 0.01;
   camera.position.z = Math.max(2, Math.min(20, camera.position.z)); // Clamp
@@ -206,16 +211,16 @@ const mouse = new THREE.Vector2();
 const clickableObjects = []; // Array of meshes that can be clicked
 
 // Update mouse position
-window.addEventListener('mousemove', (event) => {
+window.addEventListener("mousemove", (event) => {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 });
 
 // Detect clicks
-window.addEventListener('click', () => {
+window.addEventListener("click", () => {
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(clickableObjects);
-  
+
   if (intersects.length > 0) {
     const clickedObject = intersects[0].object;
     // Handle click - change color, scale, etc.
@@ -226,23 +231,23 @@ window.addEventListener('click', () => {
 // Hover effect in animation loop
 function animate() {
   requestAnimationFrame(animate);
-  
+
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(clickableObjects);
-  
+
   // Reset all objects
-  clickableObjects.forEach(obj => {
+  clickableObjects.forEach((obj) => {
     obj.scale.set(1, 1, 1);
   });
-  
+
   // Highlight hovered object
   if (intersects.length > 0) {
     intersects[0].object.scale.set(1.2, 1.2, 1.2);
-    document.body.style.cursor = 'pointer';
+    document.body.style.cursor = "pointer";
   } else {
-    document.body.style.cursor = 'default';
+    document.body.style.cursor = "default";
   }
-  
+
   renderer.render(scene, camera);
 }
 ```
@@ -259,13 +264,13 @@ for (let i = 0; i < particlesCount * 3; i++) {
 }
 
 particlesGeometry.setAttribute(
-  'position',
-  new THREE.BufferAttribute(posArray, 3)
+  "position",
+  new THREE.BufferAttribute(posArray, 3),
 );
 
 const particlesMaterial = new THREE.PointsMaterial({
   size: 0.02,
-  color: 0xffffff
+  color: 0xffffff,
 });
 
 const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
@@ -278,7 +283,7 @@ scene.add(particlesMesh);
 let mouseX = 0;
 let mouseY = 0;
 
-document.addEventListener('mousemove', (event) => {
+document.addEventListener("mousemove", (event) => {
   mouseX = (event.clientX / window.innerWidth) * 2 - 1;
   mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
 });
@@ -296,10 +301,10 @@ function animate() {
 
 ```javascript
 const textureLoader = new THREE.TextureLoader();
-const texture = textureLoader.load('texture-url.jpg');
+const texture = textureLoader.load("texture-url.jpg");
 
 const material = new THREE.MeshStandardMaterial({
-  map: texture
+  map: texture,
 });
 ```
 
@@ -356,18 +361,21 @@ User: "Create an interactive 3D sphere that responds to mouse movement"
 ## Troubleshooting
 
 **Black screen / Nothing renders:**
+
 - Check if objects added to scene
 - Verify camera position isn't inside objects
 - Ensure renderer.render() is called
 - Add lights if using lit materials
 
 **Poor performance:**
+
 - Reduce particle count
 - Lower geometry detail (segments)
 - Reuse materials/geometries
 - Check browser console for errors
 
 **Objects not visible:**
+
 - Check object position vs camera position
 - Verify material has visible color/properties
 - Ensure camera far plane includes objects
@@ -416,19 +424,22 @@ scene.add(ground);
 // Create environment map from cubemap
 const loader = new THREE.CubeTextureLoader();
 const envMap = loader.load([
-  'px.jpg', 'nx.jpg', // positive x, negative x
-  'py.jpg', 'ny.jpg', // positive y, negative y
-  'pz.jpg', 'nz.jpg'  // positive z, negative z
+  "px.jpg",
+  "nx.jpg", // positive x, negative x
+  "py.jpg",
+  "ny.jpg", // positive y, negative y
+  "pz.jpg",
+  "nz.jpg", // positive z, negative z
 ]);
 
 scene.environment = envMap; // Affects all PBR materials
-scene.background = envMap;   // Optional: use as skybox
+scene.background = envMap; // Optional: use as skybox
 
 // Or apply to specific materials
 const material = new THREE.MeshStandardMaterial({
   metalness: 1.0,
   roughness: 0.1,
-  envMap: envMap
+  envMap: envMap,
 });
 ```
 
@@ -457,12 +468,8 @@ scene.fog = new THREE.FogExp2(0xcccccc, 0.02); // color, density
 
 ```javascript
 const geometry = new THREE.BufferGeometry();
-const vertices = new Float32Array([
-  -1, -1, 0,
-   1, -1, 0,
-   1,  1, 0
-]);
-geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+const vertices = new Float32Array([-1, -1, 0, 1, -1, 0, 1, 1, 0]);
+geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
 ```
 
 ### Post-Processing Effects
@@ -482,6 +489,7 @@ scene.add(group);
 ## Summary
 
 Three.js artifacts require systematic setup:
+
 1. Import correct CDN version (r128)
 2. Initialize scene, camera, renderer
 3. Create geometry + material = mesh
@@ -500,13 +508,14 @@ While this skill focuses on CDN-based Three.js (r128) for artifact compatibility
 
 ```javascript
 // In production with npm/vite/webpack:
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer";
 ```
 
 **Benefits:**
+
 - Tree-shaking (smaller bundle sizes)
 - Access to full example library (OrbitControls, loaders, etc.)
 - Latest Three.js features (r150+)
@@ -516,23 +525,24 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 
 ```javascript
 // Smooth timeline-based animations
-import gsap from 'gsap';
+import gsap from "gsap";
 
 // Instead of manual animation loops:
 gsap.to(mesh.position, {
   x: 5,
   duration: 2,
-  ease: 'power2.inOut'
+  ease: "power2.inOut",
 });
 
 // Complex sequences:
 const timeline = gsap.timeline();
 timeline
   .to(mesh.rotation, { y: Math.PI * 2, duration: 2 })
-  .to(mesh.scale, { x: 2, y: 2, z: 2, duration: 1 }, '-=1');
+  .to(mesh.scale, { x: 2, y: 2, z: 2, duration: 1 }, "-=1");
 ```
 
 **Why GSAP:**
+
 - Professional easing functions
 - Timeline control (pause, reverse, scrub)
 - Better than manual lerping for complex animations
@@ -543,24 +553,25 @@ timeline
 // Sync 3D animations with page scroll
 let scrollY = window.scrollY;
 
-window.addEventListener('scroll', () => {
+window.addEventListener("scroll", () => {
   scrollY = window.scrollY;
 });
 
 function animate() {
   requestAnimationFrame(animate);
-  
+
   // Rotate based on scroll position
   mesh.rotation.y = scrollY * 0.001;
-  
+
   // Move camera through scene
   camera.position.y = -(scrollY / window.innerHeight) * 10;
-  
+
   renderer.render(scene, camera);
 }
 ```
 
 **Advanced scroll libraries:**
+
 - ScrollTrigger (GSAP plugin)
 - Locomotive Scroll
 - Lenis smooth scroll
@@ -570,9 +581,9 @@ function animate() {
 ```javascript
 // Level of Detail (LOD)
 const lod = new THREE.LOD();
-lod.addLevel(highDetailMesh, 0);   // Close up
+lod.addLevel(highDetailMesh, 0); // Close up
 lod.addLevel(mediumDetailMesh, 10); // Medium distance
-lod.addLevel(lowDetailMesh, 50);    // Far away
+lod.addLevel(lowDetailMesh, 50); // Far away
 scene.add(lod);
 
 // Instanced meshes for many identical objects
@@ -583,7 +594,11 @@ const instancedMesh = new THREE.InstancedMesh(geometry, material, 1000);
 // Set transforms for each instance
 const matrix = new THREE.Matrix4();
 for (let i = 0; i < 1000; i++) {
-  matrix.setPosition(Math.random() * 100, Math.random() * 100, Math.random() * 100);
+  matrix.setPosition(
+    Math.random() * 100,
+    Math.random() * 100,
+    Math.random() * 100,
+  );
   instancedMesh.setMatrixAt(i, matrix);
 }
 ```
@@ -592,12 +607,12 @@ for (let i = 0; i < 1000; i++) {
 
 ```javascript
 // In production, load 3D models:
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 const loader = new GLTFLoader();
-loader.load('model.gltf', (gltf) => {
+loader.load("model.gltf", (gltf) => {
   scene.add(gltf.scene);
-  
+
   // Traverse and setup materials
   gltf.scene.traverse((child) => {
     if (child.isMesh) {
@@ -611,12 +626,14 @@ loader.load('model.gltf', (gltf) => {
 ### When to Use What
 
 **CDN Approach (Current Skill):**
+
 - Quick prototypes and demos
 - Educational content
 - Artifacts and embedded experiences
 - No build step required
 
 **Production Build Approach:**
+
 - Client projects and portfolios
 - Complex applications
 - Need latest features (r150+)

@@ -19332,7 +19332,7 @@
     {
       "id": "threejs-skills",
       "name": "threejs-skills",
-      "description": "Three.js skills for creating 3D elements and interactive experiences",
+      "description": "Create 3D scenes, interactive experiences, and visual effects using Three.js. Use when user requests 3D graphics, WebGL experiences, 3D visualizations, animations, or interactive 3D elements.",
       "category": "general",
       "tags": [
         "threejs",
@@ -19341,13 +19341,16 @@
       "triggers": [
         "threejs",
         "skills",
+        "3d",
+        "scenes",
+        "interactive",
+        "experiences",
+        "visual",
+        "effects",
         "three",
         "js",
-        "creating",
-        "3d",
-        "elements",
-        "interactive",
-        "experiences"
+        "user",
+        "requests"
       ],
       "path": "skills/threejs-skills/SKILL.md"
     },

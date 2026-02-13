@@ -7006,7 +7006,7 @@
     "path": "skills/threejs-skills",
     "category": "uncategorized",
     "name": "threejs-skills",
-    "description": "Three.js skills for creating 3D elements and interactive experiences",
+    "description": "Create 3D scenes, interactive experiences, and visual effects using Three.js. Use when user requests 3D graphics, WebGL experiences, 3D visualizations, animations, or interactive 3D elements.",
     "risk": "safe",
     "source": "https://github.com/CloudAI-X/threejs-skills"
   },
