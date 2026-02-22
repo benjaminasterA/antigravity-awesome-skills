@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [6.0.0] - 2026-02-22 - "Codex YAML Fix & Community PRs"
+
+> **Major release: Codex frontmatter fixes, AWS Security & Compliance skills, Antigravity Workspace Manager CLI, and validation fixes.**
+
+This release addresses Codex invalid YAML warnings (issue #108) via frontmatter fixes, adds AWS Security & Compliance skills and the official Antigravity Workspace Manager CLI companion, and fixes validation for nerdzao-elite skills.
+
+## New Skills
+
+- **AWS Security & Compliance** (PR #106): `aws-compliance-checker`, `aws-iam-best-practices`, `aws-secrets-rotation`, `aws-security-audit`.
+- **nerdzao-elite**, **nerdzao-elite-gemini-high**: Elite workflow skills (validation fixes in-repo).
+
+## Improvements
+
+- **Frontmatter**: Fixed YAML frontmatter in code-reviewer, architect-review, c-pro, design-orchestration, haskell-pro, multi-agent-brainstorming, performance-engineer, search-specialist (PR #111) — reduces Codex "invalid YAML" warnings (fixes #108).
+- **Antigravity Workspace Manager**: Official CLI companion to auto-provision skill subsets across environments (PR #110); documented in Community Contributors.
+- **Registry**: Now tracking 889 skills.
+- **Validation**: Added frontmatter and "When to Use" for nerdzao-elite / nerdzao-elite-gemini-high.
+
+## Credits
+
+- **@Vonfry** for frontmatter YAML fixes (PR #111)
+- **@ssumanbiswas** for AWS Security & Compliance skills (PR #106)
+- **@amartelr** for Antigravity Workspace Manager CLI (PR #110)
+- **@fernandorych** for branch sync (PR #109)
+- **@Rodrigolmti** for reporting Codex YAML issue (#108)
+
+---
+
+_Upgrade now: `git pull origin main` to fetch the latest skills._
+
 ## [5.10.0] - 2026-02-21 - "AWS Kiro CLI Integration"
 
 > **Native support and integration guide for AWS Kiro CLI, expanding the repository's reach to the AWS developer community.**
