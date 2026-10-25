@@ -45,7 +45,7 @@ For suite selection or mobile device overrides, consult the installed command's 
 npx --no-install agent-qa run tests/checkout.yaml --junit-output results.xml
 ```
 
-Preserve the exit status and report path. Exit `0` means passed or healed, `1` failed, `2` could not run, and `130` cancelled. Inspect the verdict to distinguish a clean pass from a healed run; treat setup failures as unresolved execution, not application failures.
+Preserve the exit status and report path. Exit `0` means passed or healed; `1` covers failed or timed-out tests and missing required files; `2` means agent-qa could not run; `130` means cancelled. Inspect the verdict to distinguish a clean pass from a healed run; treat setup failures as unresolved execution, not application failures.
 
 ## Triage from recorded evidence
 
