@@ -2,7 +2,7 @@
 
 Generated at: 2026-02-08T00:00:00.000Z
 
-Total skills: 889
+Total skills: 890
 
 ## architecture (60)
 
@@ -816,11 +816,12 @@ Total skills: 889
 | `wiki-onboarding` | Generates two complementary onboarding guides — a Principal-Level architectural deep-dive and a Zero-to-Hero contributor walkthrough. Use when the user wants... | wiki, onboarding | wiki, onboarding, generates, two, complementary, guides, principal, level, architectural, deep, dive, zero |
 | `wiki-researcher` | Conducts multi-turn iterative deep research on specific topics within a codebase with zero tolerance for shallow analysis. Use when the user wants an in-dept... | wiki, researcher | wiki, researcher, conducts, multi, turn, iterative, deep, research, specific, topics, within, codebase |
 
-## testing (31)
+## testing (32)
 
 | Skill | Description | Tags | Triggers |
 | --- | --- | --- | --- |
 | `ab-test-setup` | Structured guide for setting up A/B tests with mandatory gates for hypothesis, metrics, and execution readiness. | ab, setup | ab, setup, test, structured, setting, up, tests, mandatory, gates, hypothesis, metrics, execution |
+| `agent-qa-testing` | Use when validating, running, or triaging agent-qa regression tests with advanced memidex memory and self-improvement in a project that uses agent-qa. | agent, qa | agent, qa, testing, validating, running, triaging, regression, tests, memidex, memory, self, improvement |
 | `circleci-automation` | Automate CircleCI tasks via Rube MCP (Composio): trigger pipelines, monitor workflows/jobs, retrieve artifacts and test metadata. Always search tools first f... | circleci | circleci, automation, automate, tasks, via, rube, mcp, composio, trigger, pipelines, monitor, jobs |
 | `conductor-implement` | Execute tasks from a track's implementation plan following TDD workflow | conductor, implement | conductor, implement, execute, tasks, track, plan, following, tdd |
 | `conductor-revert` | Git-aware undo by logical work unit (track, phase, or task) | conductor, revert | conductor, revert, git, aware, undo, logical, work, unit, track, phase, task |
