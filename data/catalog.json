@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-02-08T00:00:00.000Z",
-  "total": 889,
+  "total": 890,
   "skills": [
     {
       "id": "3d-web-experience",
@@ -333,6 +333,31 @@
         "performance"
       ],
       "path": "skills/agent-orchestration-multi-agent-optimize/SKILL.md"
+    },
+    {
+      "id": "agent-qa-testing",
+      "name": "agent-qa-testing",
+      "description": "Use when validating, running, or triaging agent-qa regression tests with advanced memidex memory and self-improvement in a project that uses agent-qa.",
+      "category": "testing",
+      "tags": [
+        "agent",
+        "qa"
+      ],
+      "triggers": [
+        "agent",
+        "qa",
+        "testing",
+        "validating",
+        "running",
+        "triaging",
+        "regression",
+        "tests",
+        "memidex",
+        "memory",
+        "self",
+        "improvement"
+      ],
+      "path": "skills/agent-qa-testing/SKILL.md"
     },
     {
       "id": "agent-tool-builder",

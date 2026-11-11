@@ -135,6 +135,15 @@
     "source": "community"
   },
   {
+    "id": "agent-qa-testing",
+    "path": "skills/agent-qa-testing",
+    "category": "uncategorized",
+    "name": "agent-qa-testing",
+    "description": "Use when validating, running, or triaging agent-qa regression tests with advanced memidex memory and self-improvement in a project that uses agent-qa.",
+    "risk": "critical",
+    "source": "self"
+  },
+  {
     "id": "agent-tool-builder",
     "path": "skills/agent-tool-builder",
     "category": "uncategorized",
