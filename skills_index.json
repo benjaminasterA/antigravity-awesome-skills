@@ -3015,6 +3015,15 @@
     "source": "community"
   },
   {
+    "id": "deja-history",
+    "path": "skills/deja-history",
+    "category": "uncategorized",
+    "name": "deja-history",
+    "description": "Search local AI coding session history across 44 coding agents (Claude Code, Codex, Cursor, Windsurf, Gemini CLI, Antigravity, OpenCode, and more) using a single Go binary and MCP server.",
+    "risk": "safe",
+    "source": "https://github.com/vshulcz/deja-vu"
+  },
+  {
     "id": "dependency-management-deps-audit",
     "path": "skills/dependency-management-deps-audit",
     "category": "uncategorized",

@@ -2,7 +2,7 @@
 
 Generated at: 2026-02-08T00:00:00.000Z
 
-Total skills: 889
+Total skills: 890
 
 ## architecture (60)
 
@@ -113,7 +113,7 @@ Total skills: 889
 | `startup-metrics-framework` | This skill should be used when the user asks about \"key startup | startup, metrics, framework | startup, metrics, framework, skill, should, used, user, asks, about, key |
 | `whatsapp-automation` | Automate WhatsApp Business tasks via Rube MCP (Composio): send messages, manage templates, upload media, and handle contacts. Always search tools first for c... | whatsapp | whatsapp, automation, automate, business, tasks, via, rube, mcp, composio, send, messages, upload |
 
-## data-ai (143)
+## data-ai (144)
 
 | Skill | Description | Tags | Triggers |
 | --- | --- | --- | --- |
@@ -191,6 +191,7 @@ Total skills: 889
 | `database-design` | Database design principles and decision-making. Schema design, indexing strategy, ORM selection, serverless databases. | database | database, principles, decision, making, schema, indexing, orm, selection, serverless, databases |
 | `database-optimizer` | Expert database optimizer specializing in modern performance | database, optimizer | database, optimizer, specializing, performance |
 | `dbt-transformation-patterns` | Master dbt (data build tool) for analytics engineering with model organization, testing, documentation, and incremental strategies. Use when building data tr... | dbt, transformation | dbt, transformation, data, analytics, engineering, model, organization, testing, documentation, incremental, building, transformations |
+| `deja-history` | Search local AI coding session history across 44 coding agents (Claude Code, Codex, Cursor, Windsurf, Gemini CLI, Antigravity, OpenCode, and more) using a si... | deja, history | deja, history, search, local, ai, coding, session, 44, agents, claude, code, codex |
 | `documentation-generation-doc-generate` | You are a documentation expert specializing in creating comprehensive, maintainable documentation from code. Generate API docs, architecture diagrams, user g... | documentation, generation, doc, generate | documentation, generation, doc, generate, specializing, creating, maintainable, code, api, docs, architecture, diagrams |
 | `documentation-templates` | Documentation templates and structure guidelines. README, API docs, code comments, and AI-friendly documentation. | documentation | documentation, structure, guidelines, readme, api, docs, code, comments, ai, friendly |
 | `embedding-strategies` | Select and optimize embedding models for semantic search and RAG applications. Use when choosing embedding models, implementing chunking strategies, or optim... | embedding, strategies | embedding, strategies, select, optimize, models, semantic, search, rag, applications, choosing, implementing, chunking |
