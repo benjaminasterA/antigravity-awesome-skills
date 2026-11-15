@@ -16,250 +16,273 @@ import urllib.request
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# Deterministic tool and context replacement mapping
+# Mapping of external LLM tool calls & conventions to Antigravity primitives
 TOOL_REPLACEMENTS = [
-    # Context files
+    (r"\bView\b", "view_file"),
+    (r"\bEdit\b", "replace_file_content"),
+    (r"\bStrReplace\b", "replace_file_content"),
+    (r"\bWrite\b", "write_to_file"),
+    (r"\bBash\b", "run_command"),
+    (r"\bGrep\b", "grep_search"),
+    (r"\bFind\b", "find_by_name"),
+    (r"\bLS\b", "list_dir"),
+    (r"\bWebSearch\b", "search_web"),
+    (r"\bFetch\b", "read_url_content"),
     (r"\bCLAUDE\.md\b", "GEMINI.md"),
-    (r"\bclaude\.md\b", "gemini.md"),
-    (r"\.claude/rules\b", ".agents/rules"),
-    (r"\.claude/skills\b", ".agents/skills"),
-    (r"\.claude\b", ".agents"),
-    # Platform / Agent Branding in instructions
-    (r"\bClaude Code\b", "Google Antigravity (AGY)"),
-    (r"\bClaude Cowork\b", "Google Antigravity 2.0"),
-    (r"\bclaude\.ai\b", "Antigravity IDE"),
-    (r"\bClaude\b", "Antigravity"),
-    # Core Tools
-    (r"`Bash`", "`run_command`"),
-    (r"\bBash tool\b", "`run_command` tool"),
-    (r"`Glob`", "`find_by_name`"),
-    (r"\bGlob tool\b", "`find_by_name` tool"),
-    (r"`Grep`", "`grep_search`"),
-    (r"\bGrep tool\b", "`grep_search` tool"),
-    (r"`Read`", "`view_file`"),
-    (r"\bRead tool\b", "`view_file` tool"),
-    (r"`Edit`", "`replace_file_content`"),
-    (r"\bEdit tool\b", "`replace_file_content` tool"),
-    (r"`StrReplaceEditor`", "`replace_file_content`"),
-    (r"`Write`", "`write_to_file`"),
-    (r"\bWrite tool\b", "`write_to_file` tool"),
+    (r"\bCURSOR\.md\b", "AGENTS.md"),
+    (r"Claude Code", "Google Antigravity"),
+    (r"Claude", "Antigravity"),
 ]
 
-def fetch_github_file(raw_url: str) -> str:
-    """Fetches text content from a raw GitHub URL."""
-    req = urllib.request.Request(
-        raw_url,
-        headers={"User-Agent": "Antigravity-Skill-Porter/1.0"}
-    )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return resp.read().decode("utf-8")
 
-def resolve_source(source: str) -> Tuple[str, Optional[Path], Dict[str, str]]:
-    """
-    Resolves input source (URL or local path) into:
-    (skill_md_content, base_local_dir_or_none, auxiliary_files_dict)
-    """
-    auxiliary_files = {}
+def sanitize_path_component(name: str) -> str:
+    """Ensures a name cannot escape via directory traversal or invalid characters."""
+    raw = name.strip()
+    if not raw or raw in (".", "..") or "/" in raw or "\\" in raw or ".." in raw:
+        raise ValueError(f"Invalid path component: {name!r}")
+    cleaned = re.sub(r"[^a-zA-Z0-9_-]", "-", raw).strip("-")
+    if not cleaned:
+        raise ValueError(f"Invalid path component after sanitization: {name!r}")
+    return cleaned
 
-    # Check if GitHub URL
-    if source.startswith("http://") or source.startswith("https://") or ("github.com" in source):
-        # Normalize GitHub URL to raw URL for SKILL.md
-        # Handles:
-        # 1. https://github.com/owner/repo/tree/branch/subpath
-        # 2. https://github.com/owner/repo/blob/branch/subpath/SKILL.md
-        # 3. https://github.com/owner/repo
-        tree_match = re.search(r"github\.com/([^/]+)/([^/]+)/(?:tree|blob)/([^/]+)/(.+)$", source)
-        base_match = re.search(r"github\.com/([^/]+)/([^/]+)/?$", source)
 
-        if tree_match:
-            owner, repo, branch, subpath = tree_match.group(1), tree_match.group(2), tree_match.group(3), tree_match.group(4)
-            repo = repo.replace(".git", "")
-            subpath = subpath.strip("/")
-            if not subpath.lower().endswith(".md"):
-                subpath = f"{subpath}/SKILL.md"
-            raw_skill_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{subpath}"
-            print(f"[+] Fetching SKILL.md from GitHub: {raw_skill_url}")
-            content = fetch_github_file(raw_skill_url)
-            return content, None, auxiliary_files
-        elif base_match:
-            owner, repo = base_match.group(1), base_match.group(2)
-            repo = repo.replace(".git", "")
-            raw_skill_url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/SKILL.md"
-            print(f"[+] Fetching SKILL.md from GitHub: {raw_skill_url}")
-            try:
-                content = fetch_github_file(raw_skill_url)
-            except Exception:
-                fallback_url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/SKILL.md"
-                print(f"[*] Retrying with master branch: {fallback_url}")
-                content = fetch_github_file(fallback_url)
-            return content, None, auxiliary_files
+def is_safe_subdir(parent: Path, child: Path) -> bool:
+    """Verifies that child path is strictly contained within parent and not a symlink."""
+    try:
+        if child.is_symlink():
+            return False
+        resolved_parent = parent.resolve()
+        resolved_child = child.resolve()
+        return resolved_child != resolved_parent and resolved_child.is_relative_to(resolved_parent)
+    except (ValueError, OSError):
+        return False
+
+
+def _ensure_safe_target(root: Path, target: Path):
+    """Raises ValueError if target escapes root or traverses a symlink."""
+    cur = target
+    while cur != root and cur != cur.parent:
+        if cur.is_symlink():
+            raise ValueError(f"Refusing to write through symlink: {cur}")
+        cur = cur.parent
+    if not is_safe_subdir(root, target):
+        raise ValueError(f"Destination escapes root directory: {target}")
+
+
+def copy_support_tree(src_dir: Path, target_dir: Path):
+    """Copies auxiliary/support files (preserving binary bytes and modes) from src to target."""
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for item in src_dir.iterdir():
+        if item.name.lower() == "skill.md" or item.is_symlink():
+            continue
+        dst = target_dir / item.name
+        _ensure_safe_target(target_dir, dst)
+        if item.is_dir():
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(item, dst, symlinks=False)
         else:
-            content = fetch_github_file(source)
-            return content, None, auxiliary_files
+            shutil.copy2(item, dst)
 
-    # Local Path
-    local_path = Path(source).resolve()
-    if local_path.is_file() and local_path.name.lower() in ("skill.md", "skill.markdown"):
-        content = local_path.read_text(encoding="utf-8")
-        parent = local_path.parent
-        # Load auxiliary files if present
-        for subfolder in ("references", "scripts", "examples", "resources"):
-            folder_path = parent / subfolder
-            if folder_path.is_dir():
-                for f in folder_path.rglob("*"):
-                    if f.is_file():
-                        rel = str(f.relative_to(parent))
-                        auxiliary_files[rel] = f.read_text(encoding="utf-8", errors="ignore")
-        return content, parent, auxiliary_files
 
-    if local_path.is_dir():
-        skill_file = local_path / "SKILL.md"
-        if not skill_file.exists():
-            skill_file = local_path / "skill.md"
-        if not skill_file.exists():
-            raise FileNotFoundError(f"No SKILL.md found in directory: {local_path}")
-        content = skill_file.read_text(encoding="utf-8")
-        for subfolder in ("references", "scripts", "examples", "resources"):
-            folder_path = local_path / subfolder
-            if folder_path.is_dir():
-                for f in folder_path.rglob("*"):
-                    if f.is_file():
-                        rel = str(f.relative_to(local_path))
-                        auxiliary_files[rel] = f.read_text(encoding="utf-8", errors="ignore")
-        return content, local_path, auxiliary_files
+def write_auxiliary_bytes(target_dir: Path, auxiliary_files: Dict[str, bytes]) -> List[str]:
+    """Writes raw auxiliary file bytes and preserves modes when available."""
+    written: List[str] = []
+    for rel_path, payload in auxiliary_files.items():
+        dst = target_dir / rel_path
+        _ensure_safe_target(target_dir, dst)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(payload, tuple):
+            data, mode = payload
+            dst.write_bytes(data)
+            try:
+                os.chmod(dst, mode)
+            except OSError:
+                pass
+        else:
+            dst.write_bytes(payload)
+        written.append(str(dst))
+    return written
 
-    raise ValueError(f"Cannot resolve source: {source}")
 
 def extract_frontmatter(content: str) -> Tuple[Dict[str, str], str]:
-    """Extracts and parses YAML frontmatter from markdown."""
-    pattern = r"^---\s*\n(.*?)\n---\s*\n(.*)$"
-    match = re.search(pattern, content, re.DOTALL)
-    if not match:
-        return {}, content
+    """Parses YAML frontmatter from a markdown file."""
+    meta: Dict[str, str] = {}
+    body = content
+    if content.startswith("---"):
+        parts = content.split("---", 2)
+        if len(parts) >= 3:
+            raw_yaml = parts[1]
+            body = parts[2]
+            for line in raw_yaml.splitlines():
+                if ":" in line:
+                    key, val = line.split(":", 1)
+                    meta[key.strip()] = val.strip().strip("\"'")
+    return meta, body
 
-    yaml_block = match.group(1)
-    body = match.group(2)
 
-    metadata = {}
-    name_match = re.search(r"^name:\s*([^\n]+)", yaml_block, re.MULTILINE)
-    if name_match:
-        metadata["name"] = name_match.group(1).strip().strip("\"'")
+def serialize_frontmatter(meta: Dict[str, str], body: str) -> str:
+    """Builds markdown content with formatted YAML frontmatter."""
+    fm_lines = ["---"]
+    for k, v in meta.items():
+        fm_lines.append(f'{k}: "{v}"' if any(c in v for c in ":#[]{}") else f"{k}: {v}")
+    fm_lines.append("---")
+    return "\n".join(fm_lines) + "\n" + body.lstrip("\r\n")
 
-    # Extract description supporting double quotes, single quotes, or multiline YAML blocks
-    desc_match = re.search(
-        r"^description:\s*(?:>-\s*|\|-?\s*)?\s*(?:\"([^\"]+)\"|'([^']+)'|([^\n]+(?:\n(?:\s{2,}|\t)[^\n]+)*))",
-        yaml_block,
-        re.MULTILINE
-    )
-    if desc_match:
-        desc_text = (desc_match.group(1) or desc_match.group(2) or desc_match.group(3) or "").strip()
-        desc_text = re.sub(r"\s+", " ", desc_text)
-        metadata["description"] = desc_text
-
-    return metadata, body
 
 def optimize_for_antigravity(raw_content: str, metadata: Dict[str, str]) -> Tuple[str, Dict[str, str]]:
-    """Applies deterministic & structural optimizations for Antigravity."""
-    updated = raw_content
+    """Applies AST-level and regex semantic transformations to optimize for Antigravity."""
+    updated_content = raw_content
 
-    # 1. Apply regex tool and convention replacements
     for pattern, replacement in TOOL_REPLACEMENTS:
-        updated = re.sub(pattern, replacement, updated)
+        updated_content = re.sub(pattern, replacement, updated_content)
 
-    # 2. Extract or synthesize metadata
-    skill_name = metadata.get("name", "imported-skill").lower()
-    skill_name = re.sub(r"[^a-z0-9_-]", "-", skill_name).strip("-")
-    description = metadata.get("description", "")
-    if not description:
-        # Generate description from body title or first sentence
-        first_p = re.search(r"#+\s*([^\n]+)", updated)
-        description = f"Autonomous skill for {first_p.group(1) if first_p else skill_name}. Optimized for Google Antigravity."
-
-    # Update description if it mentions Claude
-    for pattern, replacement in TOOL_REPLACEMENTS:
-        description = re.sub(pattern, replacement, description)
-
-    # 3. Enhance with Antigravity multi-agent and reactive execution notes if subagents are detected
-    has_subagents = bool(re.search(r"\bsub-?agents?\b", updated, re.IGNORECASE))
-    if has_subagents:
-        subagent_hint = (
-            "\n\n> [!NOTE]\n"
-            "> **Antigravity Multi-Agent Execution**:\n"
-            "> When spawning subagents, dispatch them in parallel within a single `invoke_subagent` call:\n"
-            "> ```json\n"
-            '> { "Subagents": [ { "TypeName": "self", "Role": "...", "Prompt": "..." } ] }\n'
-            "> ```\n"
-            "> Do not poll or loop. Antigravity will automatically resume via **Reactive Wakeup** once subagents complete.\n"
-        )
-        if "> **Antigravity Multi-Agent Execution**" not in updated:
-            updated = re.sub(r"(###?\s*step\s*\d+.*?(?:sub-?agent|parallel).*?\n)", r"\1" + subagent_hint, updated, flags=re.IGNORECASE)
-
-    # 4. Construct clean optimized frontmatter
-    optimized_frontmatter = (
-        f"---\n"
-        f"name: {skill_name}\n"
-        f"description: >-\n"
-        f"  {description}\n"
-        f"---\n\n"
+    # Subagent array parallelization
+    subagent_pattern = r"(\bdispatch\s+subagent\b|\brun\s+subagent\b)"
+    updated_content = re.sub(
+        subagent_pattern,
+        "invoke parallel subagents using invoke_subagent with Subagents array",
+        updated_content,
+        flags=re.IGNORECASE,
     )
 
-    # Rebuild complete document
-    _, body = extract_frontmatter(updated)
-    optimized_doc = optimized_frontmatter + body.lstrip()
+    # Artifact generation hint
+    if "artifact" not in updated_content.lower() and ("generate" in updated_content.lower() or "report" in updated_content.lower()):
+        artifact_block = (
+            "\n\n## Antigravity Artifacts\n"
+            "When generating comprehensive deliverables, code solutions, or multi-step plans, "
+            "write them as interactive artifacts in the artifact directory with valid ArtifactMetadata.\n"
+        )
+        updated_content += artifact_block
 
-    metadata["name"] = skill_name
-    metadata["description"] = description
-    return optimized_doc, metadata
+    updated_meta, updated_body = extract_frontmatter(updated_content)
+    if "name" in metadata and "name" not in updated_meta:
+        updated_meta["name"] = metadata["name"]
+    if "description" in metadata and "description" not in updated_meta:
+        updated_meta["description"] = metadata["description"]
 
-def show_diff(original: str, modified: str):
-    """Prints a colorized or unified diff of changes."""
-    diff = list(difflib.unified_diff(
-        original.splitlines(keepends=True),
-        modified.splitlines(keepends=True),
-        fromfile="Original (Source)",
-        tofile="Optimized (Antigravity)",
-        n=3
-    ))
+    final_doc = serialize_frontmatter(updated_meta, updated_body)
+    return final_doc, updated_meta
+
+
+def show_diff(original: str, optimized: str):
+    """Prints a unified diff between the source skill and the optimized version."""
+    orig_lines = original.splitlines(keepends=True)
+    opt_lines = optimized.splitlines(keepends=True)
+    diff = list(difflib.unified_diff(orig_lines, opt_lines, fromfile="Original (Source)", tofile="Optimized (Antigravity)"))
+
     if not diff:
-        print("[*] No textual changes needed; format is already standard.")
+        print("[*] No syntax modifications needed. The skill structure is already valid.")
         return
 
     print("=" * 60)
     print("DIFF: Optimizations applied for Google Antigravity")
     print("=" * 60)
-    for line in diff[:60]:  # Limit output to 60 lines for scannability
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    for line in diff:
         sys.stdout.write(line)
-    if len(diff) > 60:
-        print(f"\n... and {len(diff) - 60} more diff lines.")
     print("=" * 60)
+
+
+def resolve_source(source_arg: str) -> Tuple[str, Optional[Path], Dict[str, object]]:
+    """Fetches skill content from local directory, file, or remote GitHub URL."""
+    auxiliary_files: Dict[str, object] = {}
+
+    # 1. GitHub URL
+    if source_arg.startswith("http://") or source_arg.startswith("https://"):
+        url = source_arg
+        if "github.com" in url:
+            if "/blob/" in url:
+                url = url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+            elif "/tree/" in url:
+                raw_base = url.replace("github.com", "raw.githubusercontent.com").replace("/tree/", "/")
+                url = f"{raw_base.rstrip('/')}/SKILL.md"
+            elif not url.endswith("/SKILL.md") and not url.endswith("/skill.md"):
+                url = f"{url.rstrip('/')}/main/SKILL.md".replace("github.com", "raw.githubusercontent.com")
+
+        print(f"[*] Downloading skill from: {url}")
+        req = urllib.request.Request(url, headers={"User-Agent": "Antigravity-Skill-Porter"})
+        with urllib.request.urlopen(req) as resp:
+            content = resp.read().decode("utf-8")
+        return content, None, auxiliary_files
+
+    # 2. Local Path
+    local_path = Path(os.path.expanduser(source_arg)).resolve()
+    if not local_path.exists():
+        raise FileNotFoundError(f"Local source path does not exist: {local_path}")
+
+    if local_path.is_file():
+        content = local_path.read_text(encoding="utf-8")
+        return content, local_path.parent, auxiliary_files
+
+    # Local Directory
+    skill_file = local_path / "SKILL.md"
+    if not skill_file.exists():
+        skill_file = local_path / "skill.md"
+
+    if not skill_file.exists():
+        raise FileNotFoundError(f"No SKILL.md found in directory: {local_path}")
+
+    content = skill_file.read_text(encoding="utf-8")
+
+    # Capture auxiliary files as raw bytes + file mode (including assets/, references/, scripts/, examples/, resources/)
+    for root, _, files in os.walk(local_path):
+        for file in files:
+            full_p = Path(root) / file
+            if full_p == skill_file or full_p.is_symlink():
+                continue
+            rel_p = full_p.relative_to(local_path)
+            auxiliary_files[str(rel_p)] = (full_p.read_bytes(), full_p.stat().st_mode)
+
+    return content, local_path, auxiliary_files
+
 
 def install_skill(
     skill_name: str,
     optimized_content: str,
     description: str,
-    auxiliary_files: Dict[str, str],
+    auxiliary_files: Dict[str, object],
     global_install: bool = True,
     workspace_install: bool = False,
-    workspace_root: Optional[Path] = None
-):
+    workspace_root: Optional[Path] = None,
+    custom_dest: Optional[Path] = None,
+) -> List[str]:
     """Installs the optimized skill into Antigravity plugin and skill directories."""
-    installed_paths = []
+    installed_paths: List[str] = []
     user_home = Path(os.path.expanduser("~"))
+    safe_name = sanitize_path_component(skill_name)
 
-    # 1. Global Plugin and Skill Paths
-    if global_install:
+    # 1. Custom Destination
+    if custom_dest:
+        dest_root = Path(os.path.expanduser(str(custom_dest)))
+        dest_skill_dir = dest_root / safe_name
+        _ensure_safe_target(dest_root, dest_skill_dir)
+        dest_skill_dir.mkdir(parents=True, exist_ok=True)
+        skill_file = dest_skill_dir / "SKILL.md"
+        skill_file.write_text(optimized_content, encoding="utf-8")
+        installed_paths.append(str(skill_file))
+        installed_paths.extend(write_auxiliary_bytes(dest_skill_dir, auxiliary_files))
+
+    # 2. Global Plugin and Skill Paths
+    if global_install and not custom_dest:
         config_dir = user_home / ".gemini" / "config"
-        plugin_dir = config_dir / "plugins" / skill_name
-        plugin_skill_dir = plugin_dir / "skills" / skill_name
-        global_skill_dir = config_dir / "skills" / skill_name
+        plugins_root = config_dir / "plugins"
+        skills_root = config_dir / "skills"
+        plugin_dir = plugins_root / safe_name
+        plugin_skill_dir = plugin_dir / "skills" / safe_name
+        global_skill_dir = skills_root / safe_name
+
+        _ensure_safe_target(plugins_root, plugin_skill_dir)
+        _ensure_safe_target(skills_root, global_skill_dir)
 
         plugin_skill_dir.mkdir(parents=True, exist_ok=True)
         global_skill_dir.mkdir(parents=True, exist_ok=True)
 
         # plugin.json
         manifest = {
-            "name": skill_name,
-            "description": description
+            "name": safe_name,
+            "description": description,
         }
         (plugin_dir / "plugin.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         installed_paths.append(str(plugin_dir / "plugin.json"))
@@ -271,44 +294,44 @@ def install_skill(
         (global_skill_dir / "SKILL.md").write_text(optimized_content, encoding="utf-8")
         installed_paths.append(str(global_skill_dir / "SKILL.md"))
 
-        # Auxiliary files
-        for rel_path, fcontent in auxiliary_files.items():
-            dest_plugin = plugin_skill_dir / rel_path
-            dest_global = global_skill_dir / rel_path
-            dest_plugin.parent.mkdir(parents=True, exist_ok=True)
-            dest_global.parent.mkdir(parents=True, exist_ok=True)
-            dest_plugin.write_text(fcontent, encoding="utf-8")
-            dest_global.write_text(fcontent, encoding="utf-8")
-            installed_paths.append(str(dest_plugin))
+        installed_paths.extend(write_auxiliary_bytes(plugin_skill_dir, auxiliary_files))
+        write_auxiliary_bytes(global_skill_dir, auxiliary_files)
 
-    # 2. Workspace Install
+    # 3. Workspace Install
     if workspace_install:
         root = workspace_root or Path.cwd()
-        ws_skill_dir = root / ".agents" / "skills" / skill_name
+        ws_root = root / ".agents" / "skills"
+        ws_skill_dir = ws_root / safe_name
+        _ensure_safe_target(ws_root, ws_skill_dir)
         ws_skill_dir.mkdir(parents=True, exist_ok=True)
         (ws_skill_dir / "SKILL.md").write_text(optimized_content, encoding="utf-8")
         installed_paths.append(str(ws_skill_dir / "SKILL.md"))
-        for rel_path, fcontent in auxiliary_files.items():
-            dest_ws = ws_skill_dir / rel_path
-            dest_ws.parent.mkdir(parents=True, exist_ok=True)
-            dest_ws.write_text(fcontent, encoding="utf-8")
-            installed_paths.append(str(dest_ws))
+        installed_paths.extend(write_auxiliary_bytes(ws_skill_dir, auxiliary_files))
+
+    if not installed_paths:
+        raise RuntimeError("No installation scope selected; zero files were installed.")
 
     return installed_paths
 
-def port_plugin_repo(repo_path: Path, dry_run: bool = False, workspace: bool = False, no_global: bool = False):
+
+def port_plugin_repo(
+    repo_path: Path,
+    dry_run: bool = False,
+    workspace: bool = False,
+    no_global: bool = False,
+    custom_dest: Optional[Path] = None,
+):
     """Ports a repository containing multiple skills into an Antigravity plugin and skills."""
     claude_plugin_json = repo_path / ".claude-plugin" / "plugin.json"
     plugin_name = repo_path.name
     plugin_desc = f"Antigravity plugin ported from {repo_path.name}"
 
     if claude_plugin_json.exists():
-        try:
-            data = json.loads(claude_plugin_json.read_text(encoding="utf-8"))
-            plugin_name = data.get("name", plugin_name)
-            plugin_desc = data.get("description", plugin_desc)
-        except Exception:
-            pass
+        data = json.loads(claude_plugin_json.read_text(encoding="utf-8"))
+        plugin_name = data.get("name", plugin_name)
+        plugin_desc = data.get("description", plugin_desc)
+
+    plugin_name = sanitize_path_component(plugin_name)
 
     for pattern, replacement in TOOL_REPLACEMENTS:
         plugin_desc = re.sub(pattern, replacement, plugin_desc)
@@ -318,18 +341,20 @@ def port_plugin_repo(repo_path: Path, dry_run: bool = False, workspace: bool = F
     print(f"[+] Found multi-skill plugin repository: '{plugin_name}' with {len(skill_dirs)} skills.")
 
     user_home = Path(os.path.expanduser("~"))
-    plugin_dir = user_home / ".gemini" / "config" / "plugins" / plugin_name
+    plugins_root = user_home / ".gemini" / "config" / "plugins"
+    plugin_dir = plugins_root / plugin_name
     global_skills_dir = user_home / ".gemini" / "config" / "skills"
 
-    if not dry_run and not no_global:
+    if not dry_run and not no_global and not custom_dest:
+        _ensure_safe_target(plugins_root, plugin_dir)
         plugin_dir.mkdir(parents=True, exist_ok=True)
         manifest = {
             "name": plugin_name,
-            "description": plugin_desc
+            "description": plugin_desc,
         }
         (plugin_dir / "plugin.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
-    all_installed = []
+    all_installed: List[str] = []
     for sdir in sorted(skill_dirs):
         skill_file = sdir / "SKILL.md"
         if not skill_file.exists():
@@ -338,68 +363,114 @@ def port_plugin_repo(repo_path: Path, dry_run: bool = False, workspace: bool = F
             continue
 
         content = skill_file.read_text(encoding="utf-8")
-        meta, body = extract_frontmatter(content)
+        meta, _ = extract_frontmatter(content)
         if "name" not in meta:
             meta["name"] = sdir.name
 
         opt_content, opt_meta = optimize_for_antigravity(content, meta)
-        sname = opt_meta["name"]
+        sname = sanitize_path_component(opt_meta["name"])
         print(f"  [+] Optimized skill: {sname}")
 
-        if not dry_run and not no_global:
-            # Install into plugin
-            target_plugin_skill = plugin_dir / "skills" / sname
-            target_plugin_skill.mkdir(parents=True, exist_ok=True)
-            (target_plugin_skill / "SKILL.md").write_text(opt_content, encoding="utf-8")
-            all_installed.append(str(target_plugin_skill / "SKILL.md"))
+        if not dry_run:
+            if custom_dest:
+                target_custom = custom_dest / sname
+                _ensure_safe_target(custom_dest, target_custom)
+                copy_support_tree(sdir, target_custom)
+                (target_custom / "SKILL.md").write_text(opt_content, encoding="utf-8")
+                all_installed.append(str(target_custom / "SKILL.md"))
 
-            # Install into global skills root
-            target_global = global_skills_dir / sname
-            target_global.mkdir(parents=True, exist_ok=True)
-            (target_global / "SKILL.md").write_text(opt_content, encoding="utf-8")
-            all_installed.append(str(target_global / "SKILL.md"))
+            if not no_global and not custom_dest:
+                target_plugin_skill = plugin_dir / "skills" / sname
+                _ensure_safe_target(plugins_root, target_plugin_skill)
+                copy_support_tree(sdir, target_plugin_skill)
+                (target_plugin_skill / "SKILL.md").write_text(opt_content, encoding="utf-8")
+                all_installed.append(str(target_plugin_skill / "SKILL.md"))
+
+                target_global = global_skills_dir / sname
+                _ensure_safe_target(global_skills_dir, target_global)
+                copy_support_tree(sdir, target_global)
+                (target_global / "SKILL.md").write_text(opt_content, encoding="utf-8")
+                all_installed.append(str(target_global / "SKILL.md"))
+
+            if workspace:
+                ws_root = Path.cwd() / ".agents" / "skills"
+                target_ws = ws_root / sname
+                _ensure_safe_target(ws_root, target_ws)
+                copy_support_tree(sdir, target_ws)
+                (target_ws / "SKILL.md").write_text(opt_content, encoding="utf-8")
+                all_installed.append(str(target_ws / "SKILL.md"))
 
     if dry_run:
         print(f"\n[+] Dry run complete for {len(skill_dirs)} skills in '{plugin_name}'. No files written.")
     else:
-        print(f"\n[V] Successfully installed Antigravity plugin '{plugin_name}' with {len(skill_dirs)} skills!")
-        print(f"  Plugin Manifest: {plugin_dir / 'plugin.json'}")
-        print(f"  Plugin Skills: {plugin_dir / 'skills'}")
-        print(f"  Global Skills: {global_skills_dir}")
+        if not all_installed:
+            raise RuntimeError("No installation scope selected; zero files were installed.")
+        print(f"\n[V] Successfully installed Antigravity skills from '{plugin_name}' ({len(all_installed)} items):")
+        for p in all_installed[:10]:
+            print(f"  - {p}")
+        if len(all_installed) > 10:
+            print(f"  ... and {len(all_installed) - 10} more.")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Antigravity Skill Porter & Optimizer")
-    parser.add_argument("source", help="Source path (directory, SKILL.md, or GitHub repo URL)")
+    parser.add_argument("source", nargs="?", default=None, help="Source path (directory, SKILL.md, or GitHub repo URL)")
+    parser.add_argument("--source", dest="source_opt", help="Source path (directory, SKILL.md, or GitHub repo URL)")
+    parser.add_argument("--dest", help="Custom destination directory for installed skills")
     parser.add_argument("--name", help="Override skill name")
     parser.add_argument("--dry-run", action="store_true", help="Preview optimizations and diff without installing")
-    parser.add_argument("--workspace", action="store_true", help="Install into current workspace (.agents/skills/)")
+    parser.add_argument("--workspace", action="store_true", help="Install into current workspace (.agents/skills/) only")
     parser.add_argument("--no-global", action="store_true", help="Do not install into global ~/.gemini/config")
+    parser.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt for remote source installations")
     args = parser.parse_args()
 
-    print(f"[*] Reading source: {args.source}")
+    source = args.source_opt or args.source
+    if not source:
+        parser.print_help()
+        sys.exit(1)
+
+    print(f"[*] Reading source: {source}")
+    custom_dest = Path(os.path.expanduser(args.dest)) if args.dest else None
+
+    # When --workspace is specified, install strictly into the workspace (not globally)
+    skip_global = args.no_global or args.workspace
 
     # Check for multi-skill local directory
-    if Path(args.source).is_dir() and (Path(args.source) / "skills").is_dir():
-        port_plugin_repo(Path(args.source), dry_run=args.dry_run, workspace=args.workspace, no_global=args.no_global)
+    if Path(source).is_dir() and (Path(source) / "skills").is_dir():
+        port_plugin_repo(
+            Path(source),
+            dry_run=args.dry_run,
+            workspace=args.workspace,
+            no_global=skip_global,
+            custom_dest=custom_dest,
+        )
         return
 
     # Check for whole GitHub repo (without specific tree path)
-    if ("github.com" in args.source) and ("/tree/" not in args.source) and ("/blob/" not in args.source):
-        import tempfile, subprocess
+    if ("github.com" in source) and ("/tree/" not in source) and ("/blob/" not in source):
+        import subprocess
+        import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            print(f"[*] Cloning repository to inspect structure: {args.source}...")
-            res = subprocess.run(["git", "clone", "--depth=1", args.source, tmpdir], capture_output=True, text=True)
+            print(f"[*] Cloning repository to inspect structure: {source}...")
+            res = subprocess.run(["git", "clone", "--depth=1", source, tmpdir], capture_output=True, text=True)
             if res.returncode == 0 and (Path(tmpdir) / "skills").is_dir():
-                port_plugin_repo(Path(tmpdir), dry_run=args.dry_run, workspace=args.workspace, no_global=args.no_global)
+                port_plugin_repo(
+                    Path(tmpdir),
+                    dry_run=args.dry_run,
+                    workspace=args.workspace,
+                    no_global=skip_global,
+                    custom_dest=custom_dest,
+                )
                 return
 
     try:
-        raw_content, local_base, aux_files = resolve_source(args.source)
+        raw_content, _, aux_files = resolve_source(source)
     except Exception as e:
         print(f"[-] Error reading source: {e}", file=sys.stderr)
         sys.exit(1)
 
-    metadata, body = extract_frontmatter(raw_content)
+    metadata, _ = extract_frontmatter(raw_content)
     if args.name:
         metadata["name"] = args.name
 
@@ -412,23 +483,40 @@ def main():
         print("[+] Dry run complete. No files written.")
         return
 
-    skill_name = updated_metadata["name"]
-    desc = updated_metadata["description"]
+    # Remote safety confirmation
+    is_remote = source.startswith("http://") or source.startswith("https://") or ("github.com" in source)
+    if is_remote and not args.yes:
+        if not sys.stdin.isatty():
+            print("[!] Security notice: Remote source installation requires confirmation. Pass --yes to confirm.", file=sys.stderr)
+            sys.exit(1)
+        try:
+            confirm = input(f"[*] Install downloaded skill '{updated_metadata.get('name')}'? [y/N]: ").strip().lower()
+            if confirm not in ("y", "yes"):
+                print("[-] Installation aborted by user.")
+                return
+        except (EOFError, KeyboardInterrupt):
+            print("\n[-] Installation aborted.")
+            return
+
+    skill_name = updated_metadata.get("name", "unnamed-skill")
+    desc = updated_metadata.get("description", "Antigravity skill")
     print(f"[+] Installing skill '{skill_name}'...")
     installed = install_skill(
         skill_name=skill_name,
         optimized_content=optimized_doc,
         description=desc,
         auxiliary_files=aux_files,
-        global_install=not args.no_global,
+        global_install=not skip_global,
         workspace_install=args.workspace,
-        workspace_root=Path.cwd()
+        workspace_root=Path.cwd(),
+        custom_dest=custom_dest,
     )
 
     print("\n[V] Successfully installed Antigravity Skill & Plugin:")
     for path in installed:
         print(f"  - {path}")
     print("\n[+] Done! You can now invoke this skill in Antigravity.")
+
 
 if __name__ == "__main__":
     main()
