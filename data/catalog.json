@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-02-08T00:00:00.000Z",
-  "total": 889,
+  "total": 890,
   "skills": [
     {
       "id": "3d-web-experience",
@@ -7518,6 +7518,31 @@
         "smart"
       ],
       "path": "skills/defi-protocol-templates/SKILL.md"
+    },
+    {
+      "id": "deja-history",
+      "name": "deja-history",
+      "description": "Search local AI coding session history across 44 coding agents (Claude Code, Codex, Cursor, Windsurf, Gemini CLI, Antigravity, OpenCode, and more) using a single Go binary and MCP server.",
+      "category": "data-ai",
+      "tags": [
+        "deja",
+        "history"
+      ],
+      "triggers": [
+        "deja",
+        "history",
+        "search",
+        "local",
+        "ai",
+        "coding",
+        "session",
+        "44",
+        "agents",
+        "claude",
+        "code",
+        "codex"
+      ],
+      "path": "skills/deja-history/SKILL.md"
     },
     {
       "id": "dependency-management-deps-audit",
